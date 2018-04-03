@@ -3,7 +3,7 @@ export interface Handler {
 }
 
 export class Transition {
-    constructor(public from, public event, public to, public final: boolean){
+    constructor(public from, public event, public to, public final: boolean) {
     }
 }
 
@@ -159,9 +159,7 @@ export class EasyFlow {
 
             this.handlers.forEach(handler => {
                 if (handler.type === HandlerType.WHEN_EVENT && (handler.match === '*' || handler.match === event)) {
-                    runAsync(() => {
-                        handler.handler(context, context.state, event);
-                    });
+                    handler.handler(context, context.state, event);
                 }
             });
         }
@@ -170,73 +168,65 @@ export class EasyFlow {
     }
 
     enter(context: Context, nextState) {
-        runAsync(() => {
-            context.events = [];
-            context.state = nextState;
-            this.resolvedTransitions.forEach(transition => {
-                if (context.state === transition.from) {
-                    context.events.push(transition.event);
-                }
-            });
+        context.events = [];
+        context.state = nextState;
+        this.resolvedTransitions.forEach(transition => {
+            if (context.state === transition.from) {
+                context.events.push(transition.event);
+            }
+        });
 
+        if (this.debug) {
+            if (this.printLogs) console.log('Debug: entered state %s', nextState);
+        }
+
+        if (context.nextStateFinal) {
+            context.finished = true;
             if (this.debug) {
-                if (this.printLogs) console.log('Debug: entered state %s', nextState);
+                if (this.printLogs) console.log('Debug: context finished');
             }
+        }
 
-            if (context.nextStateFinal) {
-                context.finished = true;
-                if (this.debug) {
-                    if (this.printLogs) console.log('Debug: context finished');
-                }
+        this.handlers.forEach(handler => {
+            if (handler.type === HandlerType.WHEN_ENTER && (handler.match === '*' || handler.match === nextState)) {
+                handler.handler(context, context.state, context.lastEvent);
             }
-
-            this.handlers.forEach(handler => {
-                if (handler.type === HandlerType.WHEN_ENTER && (handler.match === '*' || handler.match === nextState)) {
-                    runAsync(() => {
-                        handler.handler(context, context.state, context.lastEvent);
-                    });
-                }
-            });
         });
     }
 
     leave(context: Context) {
         if (context.state) {
-            runAsync(() => {
-                context.prevState = context.state;
+            context.prevState = context.state;
 
-                this.handlers.forEach(handler => {
-                    if (handler.type === HandlerType.WHEN_LEAVE && (handler.match === '*' || handler.match === context.prevState)) {
-                        runAsync(() => {
-                            handler.handler(context, context.state, context.lastEvent);
-                        });
-                    }
-                });
+            this.handlers.forEach(handler => {
+                if (handler.type === HandlerType.WHEN_LEAVE && (handler.match === '*' || handler.match === context.prevState)) {
+                    handler.handler(context, context.state, context.lastEvent);
+                }
             });
         }
     }
 
     middleware() {
         return (req, res) => {
-            this.start(<any>{originalReq: req, originalRes: res});
+            this.start(<any>{ originalReq: req, originalRes: res });
         };
     }
 
     responseHandler(context, hint?, events?) {
         return (err, res?, body?) => {
-            if (!err && ((res && res.statusCode && res.statusCode > 299) || (body && body.code && body.code.indexOf('ERROR') !=-1))) {
+            if (!err && ((res && res.statusCode && res.statusCode > 299) || (body && body.code && body.code.indexOf('ERROR') != -1))) {
                 err = res.statusCode + ': ' + body.code;
                 if (body && body.message) {
                     err += ': ' + body.message;
                 }
-                err = {message: err};
+                err = { message: err };
             }
 
             context.err = err;
             context.res = res;
             context.body = body;
 
-            if (!events){
+            if (!events) {
                 events = ['success', 'error'];
             }
 
