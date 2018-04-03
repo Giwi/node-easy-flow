@@ -29,10 +29,6 @@ export class HandlerRecord {
     }
 }
 
-export function runAsync(callback) {
-    process.nextTick(callback);
-}
-
 export function from(state, ...transitions: Transition[]) {
     const t = EasyFlow.currentInstance;
     t.initialState = state;
