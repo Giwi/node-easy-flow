@@ -105,17 +105,19 @@ export class EasyFlow {
         return context;
     }
 
-    trigger(event, context: Context) {
+    trigger(event, context: Context): boolean {
         if (this.event(context, event)) {
             if (context.finished) {
                 if (this.printLogs) console.log('Warning: trying to exit final state %s', context.state);
-                return;
+                return false;
             }
 
             this.leave(context);
             this.enter(context, context.nextState);
+            return true;
         } else {
             if (this.printLogs) console.log('Warning: invalid event triggered %s in state %s', event, context.state);
+            return false;
         }
     }
 
